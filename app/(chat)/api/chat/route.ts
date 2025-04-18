@@ -5,7 +5,6 @@ import {
   smoothStream,
   streamText,
 } from 'ai';
-import { auth } from '@/app/(auth)/auth';
 import { systemPrompt } from '@/lib/ai/prompts';
 import {
   deleteChatById,
@@ -40,12 +39,6 @@ export async function POST(request: Request) {
       selectedChatModel: string;
     } = await request.json();
 
-    const session = await auth();
-
-    if (!session || !session.user || !session.user.id) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-
     const userMessage = getMostRecentUserMessage(messages);
 
     if (!userMessage) {
@@ -59,11 +52,7 @@ export async function POST(request: Request) {
         message: userMessage,
       });
 
-      await saveChat({ id, userId: session.user.id, title });
-    } else {
-      if (chat.userId !== session.user.id) {
-        return new Response('Unauthorized', { status: 401 });
-      }
+      await saveChat({ id, userId: 'anonymous', title });
     }
 
     await saveMessages({
@@ -99,47 +88,42 @@ export async function POST(request: Request) {
           experimental_generateMessageId: generateUUID,
           tools: {
             getWeather,
-            createDocument: createDocument({ session, dataStream }),
-            updateDocument: updateDocument({ session, dataStream }),
-            requestSuggestions: requestSuggestions({
-              session,
-              dataStream,
-            }),
+            createDocument: createDocument({ dataStream }),
+            updateDocument: updateDocument({ dataStream }),
+            requestSuggestions: requestSuggestions({ dataStream }),
           },
           onFinish: async ({ response }) => {
-            if (session.user?.id) {
-              try {
-                const assistantId = getTrailingMessageId({
-                  messages: response.messages.filter(
-                    (message) => message.role === 'assistant',
-                  ),
-                });
+            try {
+              const assistantId = getTrailingMessageId({
+                messages: response.messages.filter(
+                  (message) => message.role === 'assistant',
+                ),
+              });
 
-                if (!assistantId) {
-                  throw new Error('No assistant message found!');
-                }
-
-                const [, assistantMessage] = appendResponseMessages({
-                  messages: [userMessage],
-                  responseMessages: response.messages,
-                });
-
-                await saveMessages({
-                  messages: [
-                    {
-                      id: assistantId,
-                      chatId: id,
-                      role: assistantMessage.role,
-                      parts: assistantMessage.parts,
-                      attachments:
-                        assistantMessage.experimental_attachments ?? [],
-                      createdAt: new Date(),
-                    },
-                  ],
-                });
-              } catch (_) {
-                console.error('Failed to save chat');
+              if (!assistantId) {
+                throw new Error('No assistant message found!');
               }
+
+              const [, assistantMessage] = appendResponseMessages({
+                messages: [userMessage],
+                responseMessages: response.messages,
+              });
+
+              await saveMessages({
+                messages: [
+                  {
+                    id: assistantId,
+                    chatId: id,
+                    role: assistantMessage.role,
+                    parts: assistantMessage.parts,
+                    attachments:
+                      assistantMessage.experimental_attachments ?? [],
+                    createdAt: new Date(),
+                  },
+                ],
+              });
+            } catch (_) {
+              console.error('Failed to save chat');
             }
           },
           experimental_telemetry: {
@@ -173,19 +157,7 @@ export async function DELETE(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
-
-  if (!session || !session.user) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
   try {
-    const chat = await getChatById({ id });
-
-    if (chat.userId !== session.user.id) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-
     await deleteChatById({ id });
 
     return new Response('Chat deleted', { status: 200 });

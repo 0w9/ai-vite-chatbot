@@ -1,8 +1,6 @@
-import { put } from '@vercel/blob';
+import { Client } from 'pg';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-
-import { auth } from '@/app/(auth)/auth';
 
 // Use Blob instead of File since File is not available in Node.js environment
 const FileSchema = z.object({
@@ -17,13 +15,13 @@ const FileSchema = z.object({
     }),
 });
 
+// Initialize Postgres client
+const client = new Client({
+  connectionString: process.env.POSTGRES_URL,
+});
+await client.connect();
+
 export async function POST(request: Request) {
-  const session = await auth();
-
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   if (request.body === null) {
     return new Response('Request body is empty', { status: 400 });
   }
@@ -51,13 +49,16 @@ export async function POST(request: Request) {
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const data = await put(`${filename}`, fileBuffer, {
-        access: 'public',
-      });
+      // Insert file into Postgres
+      const query = 'INSERT INTO files (name, content) VALUES ($1, $2) RETURNING id';
+      const values = [filename, Buffer.from(fileBuffer)];
+      const result = await client.query(query, values);
 
-      return NextResponse.json(data);
+      return NextResponse.json({ id: result.rows[0].id, message: 'File uploaded successfully' });
     } catch (error) {
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    } finally {
+      await client.end();
     }
   } catch (error) {
     return NextResponse.json(

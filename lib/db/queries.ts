@@ -29,10 +29,6 @@ import {
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 
-// Optionally, if not using email/pass login, you can
-// use the Drizzle adapter for Auth.js / NextAuth
-// https://authjs.dev/reference/adapter/drizzle
-
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
 const db = drizzle(client);
@@ -241,14 +237,12 @@ export async function saveDocument({
   id,
   title,
   kind,
-  content,
-  userId,
+  content
 }: {
   id: string;
   title: string;
   kind: ArtifactKind;
   content: string;
-  userId: string;
 }) {
   try {
     return await db
@@ -258,7 +252,6 @@ export async function saveDocument({
         title,
         kind,
         content,
-        userId,
         createdAt: new Date(),
       })
       .returning();
