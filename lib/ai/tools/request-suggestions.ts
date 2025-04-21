@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { DataStreamWriter, streamObject, tool } from 'ai';
+import type { DataStreamWriter } from 'ai';
+import { streamObject, tool } from 'ai';
 import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
-import { Suggestion } from '@/lib/db/schema';
+import type { Suggestion } from '@/lib/db/schema';
 import { generateUUID } from '@/lib/utils';
 import { myProvider } from '../providers';
 
@@ -9,9 +10,7 @@ interface RequestSuggestionsProps {
   dataStream: DataStreamWriter;
 }
 
-export const requestSuggestions = ({
-  dataStream,
-}: RequestSuggestionsProps) =>
+export const requestSuggestions = ({ dataStream }: RequestSuggestionsProps) =>
   tool({
     description: 'Request suggestions for a document',
     parameters: z.object({
@@ -79,4 +78,4 @@ export const requestSuggestions = ({
         message: 'Suggestions have been added to the document',
       };
     },
-  }); 
+  });

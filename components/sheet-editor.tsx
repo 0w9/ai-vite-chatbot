@@ -6,7 +6,7 @@ import { parse, unparse } from 'papaparse';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
-import 'react-data-grid/lib/styles.css';
+// import 'react-data-grid/lib/styles.css';
 
 type SheetEditorProps = {
   content: string;

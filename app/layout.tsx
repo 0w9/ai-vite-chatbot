@@ -1,11 +1,14 @@
 import { Toaster } from 'sonner';
 import type { Metadata } from 'next';
-// import { GeistSans } from "geist/font/sans"
-// import { GeiestMono, GeistMono } from 'geist/font/mono';
+import { Inter } from 'next/font/google';
+// import { GeistSans } from 'geist/font/sans';
+// import { GeistMono } from 'geist/font/mono';
 
 import { ThemeProvider } from '@/components/theme-provider';
 
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://chat.vercel.ai'),
@@ -16,7 +19,7 @@ export const metadata: Metadata = {
 // const geist = GeistSans({
 //   subsets: ['latin'],
 //   display: 'swap',
-//   variable: '--font-geist',
+//   variable: '--font-geist-sans',
 // });
 
 // const geistMono = GeistMono({
@@ -58,6 +61,7 @@ export default async function RootLayout({
       // prop is necessary to avoid the React hydration mismatch warning.
       // https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
       suppressHydrationWarning
+      className={inter.className}
       // className={`${geist.variable} ${geistMono.variable}`}
     >
       <head>
